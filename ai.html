@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8" />
+    <title>Solar Legacy – POI Prototype (Fixed)</title>
+    <style>
+        :root {
+            --bg: #05060a;
+            --bg-panel: #111827;
+            --accent: #38bdf8;
+            --accent-soft: #0f172a;
+            --text: #e5e7eb;
+            --text-soft: #9ca3af;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #020617 0, #000 60%);
+            color: var(--text);
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(to right, #020617, #020617 40%, #0f172a);
+            border-bottom: 1px solid #1f2933;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #e5e7eb;
+        }
+
+        #resource-bar {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .res {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            color: var(--text-soft);
+        }
+
+        .res span {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        nav {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            background: #020617;
+            border-bottom: 1px solid #1f2933;
+        }
+
+        nav button {
+            background: #020617;
+            border: 1px solid #1f2937;
+            color: var(--text-soft);
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        nav button.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            padding: 0.8rem;
+            gap: 0.8rem;
+        }
+
+        .panel {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 8px;
+            border: 1px solid #1f2937;
+            padding: 0.6rem;
+            backdrop-filter: blur(10px);
+        }
+
+        #left-panel {
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        #main-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        h2 {
+            font-size: 0.9rem;
+            margin: 0 0 0.4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-soft);
+        }
+
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: flex;
+            flex: 1;
+        }
+
+        /* Kommandorom */
+        #command-view {
+            flex-direction: row;
+            gap: 0.8rem;
+        }
+
+        #command-summary {
+            flex: 1;
+        }
+
+        #log {
+            margin-top: 0.4rem;
+            max-height: 260px;
+            overflow-y: auto;
+            font-size: 0.78rem;
+            padding-right: 0.4rem;
+        }
+
+        .log-entry {
+            margin-bottom: 0.25rem;
+            color: var(--text-soft);
+        }
+
+        .log-entry span {
+            color: #6b7280;
+            font-size: 0.7rem;
+        }
+
+        /* Solsystem */
+        #solar-view {
+            position: relative;
+            gap: 0.8rem;
+        }
+
+        #solar-map {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #020617 0, #020617 40%, #000 100%);
+            border-radius: 8px;
+            border: 1px solid #1f2933;
+            overflow: hidden;
+        }
+
+        .sun {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at center, #facc15, #b45309);
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(250, 204, 21, 0.7);
+        }
+
+        .orbit {
+            position: absolute;
+            border: 1px dashed rgba(148, 163, 184, 0.2);
+            border-radius: 50%;
+        }
+
+        .planet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 6px rgba(148, 163, 184, 0.5);
+            z-index: 3;
+        }
+
+        .planet-label {
+            position: absolute;
+            font-size: 0.65rem;
+            color: var(--text-soft);
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        #planet-info {
+            width: 260px;
+            font-size: 0.78rem;
+        }
+
+        #planet-actions button {
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.75rem;
+        }
+
+        #orbit-speed {
+            width: 100%;
+        }
+
+        .solar-debug-center {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .solar-debug-label {
+            position: absolute;
+            font-size: 0.6rem;
+            color: #f97316;
+            text-shadow: 0 0 4px #000;
+            pointer-events: none;
+            z-index: 4;
+        }
+
+        /* Mars-visning (overflate + base) */
+        #mars-view {
+            flex-direction: row;
+            gap: 0.8rem;
+        }
+
+        #mars-left {
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        #mars-right {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        #surface-view, #base-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        #base-view {
+            display: none;
+        }
+
+        #base-view.active {
+            display: flex;
+        }
+
+        #surface-grid {
+            flex: 1;
+            display: grid;
+            background: #020617;
+            border-radius: 6px;
+            border: 1px solid #1f2937;
+            overflow: hidden;
+        }
+
+        .surface-tile {
+            border: 1px solid #020617;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .surface-tile.aircraft {
+            box-shadow: inset 0 0 0 2px #38bdf8;
+        }
+
+        .surface-tile.base {
+            outline: 2px solid #facc15;
+            outline-offset: -2px;
+        }
+
+        .surface-tile .label {
+            position: absolute;
+            bottom: 1px;
+            right: 2px;
+            font-size: 0.55rem;
+            color: rgba(15, 23, 42, 0.9);
+            text-shadow: 0 0 2px rgba(255,255,255,0.7);
+            pointer-events: none;
+        }
+
+        .poi-marker {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #f97316;
+            box-shadow: 0 0 4px rgba(249,115,22,0.8);
+            pointer-events: none;
+        }
+
+        /* Enkel flymodell */
+        .aircraft-model {
+            position: absolute;
+            top: 15%;
+            left: 25%;
+            width: 50%;
+            height: 70%;
+            background: linear-gradient(to bottom, #38bdf8, #0ea5e9);
+            border-radius: 50% 50% 40% 40%;
+            box-shadow: 0 0 4px rgba(56, 189, 248, 0.8);
+        }
+
+        .aircraft-model::before {
+            content: "";
+            position: absolute;
+            top: -20%;
+            left: 25%;
+            width: 50%;
+            height: 40%;
+            background: #38bdf8;
+            border-radius: 50% 50% 0 0;
+        }
+
+        .aircraft-model::after {
+            content: "";
+            position: absolute;
+            top: 35%;
+            left: -15%;
+            width: 130%;
+            height: 30%;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 40%;
+            box-shadow: 0 0 4px rgba(15, 23, 42, 0.9);
+        }
+
+        #surface-hint {
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+
+        #tile-info {
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+
+        #mars-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        #view-toggle {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        #view-toggle button.active {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Base‑innside */
+        #base-main {
+            flex: 1;
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        #base-grid {
+            flex: 1;
+            display: grid;
+            background: #020617;
+            border-radius: 6px;
+            border: 1px solid #1f2937;
+            overflow: hidden;
+        }
+
+        .base-tile {
+            border: 1px solid #020617;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .base-tile .building {
+            width: 80%;
+            height: 80%;
+            margin: 10%;
+            border-radius: 2px;
+        }
+
+        .b-mine    { background: #6b21a8; }
+        .b-power   { background: #facc15; }
+        .b-storage { background: #4b5563; }
+        .b-factory { background: #0ea5e9; }
+        .b-habitat { background: #22c55e; }
+
+        #build-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
+
+        #build-toolbar button {
+            flex: 1 1 48%;
+            font-size: 0.75rem;
+        }
+
+        #build-toolbar button.selected {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        #colony-info {
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+
+        #base-hint {
+            font-size: 0.75rem;
+            color: var(--text-soft);
+        }
+
+        button {
+            background: #020617;
+            color: var(--text-soft);
+            border: 1px solid #1f2937;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+        }
+
+        button:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2933;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <header>
+        <h1>SOLAR LEGACY – MISSION CONTROL (POI Fixed)</h1>
+        <div id="resource-bar">
+            <div class="res">Metall: <span id="res-metal">100</span></div>
+            <div class="res">Energi: <span id="res-energy">50</span></div>
+            <div class="res">Befolkning: <span id="res-population">10</span></div>
+        </div>
+    </header>
+
+    <nav>
+        <button id="btn-command" class="active">Kommandorom</button>
+        <button id="btn-solar">Solsystem</button>
+        <button id="btn-mars">Mars / Koloni</button>
+    </nav>
+
+    <main>
+        <div id="left-panel">
+            <div class="panel">
+                <h2>Status</h2>
+                <div id="status-text" style="font-size:0.8rem;color:var(--text-soft);">
+                    Oppdrag: Utforsk solsystemet, scan planeter og etabler en selvforsynt koloni på Mars.
+                </div>
+            </div>
+            <div class="panel" style="flex:1;min-height:150px;">
+                <h2>Logg</h2>
+                <div id="log"></div>
+            </div>
+        </div>
+
+        <div id="main-panel">
+            <!-- KOMMANDOROM -->
+            <div id="command-view" class="view active panel">
+                <div id="command-summary">
+                    <h2>Kommandorom</h2>
+                    <p style="font-size:0.85rem;color:var(--text-soft);">
+                        Velkommen, kommandør. Herfra styrer du skanning av solsystemet og kolonien på Mars.
+                    </p>
+                    <ul style="font-size:0.8rem;color:var(--text-soft);">
+                        <li>Bruk <b>Solsystem</b> til å scanne planeter og finne mål.</li>
+                        <li>Bruk <b>Mars / Koloni</b> til å utforske overflaten, finne POI og grunnlegge base.</li>
+                        <li>Første base starter med solkraftverk, gruve og boligdomer ferdig bygget.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- SOLSYSTEM -->
+            <div id="solar-view" class="view">
+                <div id="solar-map">
+                    <div class="sun" id="sun"></div>
+                </div>
+                <div id="planet-info" class="panel">
+                    <h2>Planet</h2>
+                    <div id="planet-details" style="min-height:120px;font-size:0.8rem;color:var(--text-soft);">
+                        Klikk på en planet for informasjon.
+                    </div>
+                    <div id="planet-actions">
+                        <button id="btn-scan" disabled>Scan planet</button>
+                        <button id="btn-send-probe" disabled>Send romsonde</button>
+                        <button id="btn-go-to-mars" disabled>Gå til Mars / Koloni</button>
+                    </div>
+
+                    <div style="margin-top:0.8rem;">
+                        <h2>Banefart</h2>
+                        <input type="range" id="orbit-speed" min="0" max="100" value="25">
+                        <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.2rem;">
+                            Hastighet: <span id="orbit-speed-label">0.25x</span> (0 = stopp, 1.0 = normal)
+                        </div>
+                        <div style="font-size:0.75rem;color:var(--text-soft);margin-top:0.4rem;">
+                            Debug: rød prikk = senter. Oransje tekst viser orbit‑radius i piksler per planet.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MARS (OVERFLATE + BASE) -->
+            <div id="mars-view" class="view">
+                <div id="mars-left">
+                    <div class="panel">
+                        <h2>Mars status</h2>
+                        <div id="tile-info">
+                            Flyet står på (x: –, y: –).<br/>
+                            Basekvalitet: – %
+                        </div>
+                        <div id="mars-controls" style="margin-top:0.4rem;">
+                            <button id="btn-found-base" disabled>Grunnlegg base her</button>
+                            <div id="view-toggle">
+                                <button id="btn-surface-view" class="active">Overflate</button>
+                                <button id="btn-base-view" disabled>Gå inn i base</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel" style="flex:1;min-height:150px;">
+                        <h2>Kolonidata</h2>
+                        <div id="colony-info" style="font-size:0.8rem;color:var(--text-soft);">
+                            Ingen base grunnlagt ennå.
+                        </div>
+                    </div>
+                </div>
+
+                <div id="mars-right">
+                    <div id="surface-view" class="panel">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                            <h2>Mars – Overflate</h2>
+                            <span style="font-size:0.7rem;color:var(--text-soft);">Fly: piltaster</span>
+                        </div>
+                        <div id="surface-grid"></div>
+                        <div id="surface-hint">
+                            Fog of war: ukjente felt er mørke. Flyet (blå modell) ser alle felt direkte rundt seg.
+                            Noen felt inneholder POI som gir bonus når de oppdages.
+                        </div>
+                    </div>
+
+                    <div id="base-view" class="panel">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                            <h2>Mars – Base (innside)</h2>
+                        </div>
+                        <div id="base-main">
+                            <div id="base-grid"></div>
+                            <div class="panel" style="width:220px;">
+                                <h2>Bygg</h2>
+                                <div id="build-toolbar"></div>
+                                <div id="base-hint">
+                                    Velg en bygning og klikk på et felt i basen for å bygge. Ressurser produseres automatisk over tid.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- mars-view -->
+        </div>
+    </main>
+</div>
+
+<script>
+/* =========================
+   KONSTANTER & DATA
+   ========================= */
+
+const MIN_BASE_SUITABILITY = 60;
+
+// Energisystem
+const POWER_OUTPUT_PER_PLANT = 100;
+const ENERGY_COST = {
+    mine: 30,
+    habitat: 10,
+    storage: 5,
+    factory: 20,
+    power: 0
+};
+
+// Kapasiteter
+const MINE_CAPACITY = 1000;      // per gruve
+const STORAGE_CAPACITY = 100000; // per lager
+const HABITAT_CAPACITY = 100;    // per bolig
+
+// Arbeidskraft (antall personer per bygg)
+const WORKERS_PER_POWER = 5;
+const WORKERS_PER_MINE = 10;
+
+// Produksjon per aktivt bygg per tick (1 sekund)
+const PRODUCTION = {
+    mine:    { metal: 2,   population: 0 },
+    factory: { metal: 1,   population: 0 },
+    habitat: { metal: 0,   population: 0.5 }, // ~0.5 person per sekund per hus
+    power:   { metal: 0,   population: 0 },
+    storage: { metal: 0,   population: 0 }
+};
+
+const BUILDINGS = {
+    mine: {
+        id: "mine",
+        name: "Gruve",
+        css: "b-mine",
+        cost: { metal: 20 }, // energi koster ikke ved bygging nå
+    },
+    power: {
+        id: "power",
+        name: "Solkraftverk",
+        css: "b-power",
+        cost: { metal: 15 },
+    },
+    storage: {
+        id: "storage",
+        name: "Lager",
+        css: "b-storage",
+        cost: { metal: 10 },
+    },
+    factory: {
+        id: "factory",
+        name: "Produksjonshall",
+        css: "b-factory",
+        cost: { metal: 30 },
+    },
+    habitat: {
+        id: "habitat",
+        name: "Boligdomer",
+        css: "b-habitat",
+        cost: { metal: 18 },
+    }
+};
+
+const POI_DEFS = [
+    {
+        id: "ancient_ruins",
+        name: "Eldgamle ruiner",
+        desc: "Strukturer fra ukjent sivilisasjon. Potensiell forskningsverdi.",
+        bonus: { metal: 10, energy: 0, population: 0 }
+    },
+    {
+        id: "crashed_probe",
+        name: "Krasjet sonde",
+        desc: "Gamle jordiske eller ukjente komponenter – deler kan gjenvinnes.",
+        bonus: { metal: 20, energy: 5, population: 0 }
+    },
+    {
+        id: "ice_deposit",
+        name: "Isforekomst",
+        desc: "Skjult is under overflaten, mulig vann- og drivstoffkilde.",
+        bonus: { metal: 0, energy: 0, population: 2 }
+    },
+    {
+        id: "mineral_vein",
+        name: "Rik malmårer",
+        desc: "Naturlig forekomst av sjeldne metaller.",
+        bonus: { metal: 30, energy: 0, population: 0 }
+    }
+];
+
+const gameState = {
+    view: "command",
+    resources: {
+        metal: 1000,
+        energy: 500,   // vil bli overskrevet av energisystemet
+        population: 100
+    },
+    planets: [
+        { id: "mercury", name: "Merkur", distanceAU: 0.4, scanned: false, desc: "Brent og ugjestmild, men rik på metaller." },
+        { id: "venus",   name: "Venus",  distanceAU: 0.7, scanned: false, desc: "Tett atmosfære, ekstremt trykk og varme." },
+        { id: "earth",   name: "Jorden", distanceAU: 1.0, scanned: true,  desc: "Menneskehetens hjem – nå styrer du ekspansjonen videre." },
+        { id: "mars",    name: "Mars",   distanceAU: 1.5, scanned: false, desc: "Mål for første selvforsynte koloni." },
+        { id: "jupiter", name: "Jupiter",distanceAU: 5.2, scanned: false, desc: "Gasskjempe med interessante måner." },
+        { id: "saturn",  name: "Saturn", distanceAU: 9.5, scanned: false, desc: "Spektakulære ringer, potensielle ressurser i systemet." }
+    ],
+    selectedPlanetId: null,
+
+    solarLayout: {
+        initialized: false,
+        width: 0,
+        height: 0,
+        centerX: 0,
+        centerY: 0,
+        centerDebugEl: null
+    },
+
+    orbitSpeedMultiplier: 0.25,
+
+    marsSurface: {
+        width: 30,
+        height: 20,
+        tiles: [],
+        aircraft: { x: 15, y: 10 },
+        base: null
+    },
+
+    base: {
+        width: 16,
+        height: 10,
+        tiles: [],
+        buildings: [] // {x,y,type}
+    },
+
+    selectedBuildingId: null,
+    currentMarsView: "surface"
+};
+
+/* =========================
+   INIT & LOGG
+   ========================= */
+
+function init() {
+    initLog();
+    initNav();
+    initSolarView();
+    initMarsSurface();
+    initBaseGrid();
+    initBuildToolbar();
+    initMarsButtons();
+    initKeyboardControls();
+    updateResourcesUI();
+    updateColonyInfo();
+    startGameLoops();
+
+    log("Oppdrag startet. Flåte i bane rundt Solen.");
+    log("Utforsk solsystemet og finn en god baseplass på Mars.");
+}
+
+function initLog() { log("Systeminitialisering fullført."); }
+
+function log(message) {
+    const logEl = document.getElementById("log");
+    const entry = document.createElement("div");
+    entry.className = "log-entry";
+    const timestamp = new Date().toLocaleTimeString("no-NO", { hour12: false });
+    entry.innerHTML = `<span>[${timestamp}]</span> ${message}`;
+    logEl.prepend(entry);
+}
+
+/* =========================
+   NAVIGASJON
+   ========================= */
+
+function initNav() {
+    document.getElementById("btn-command").addEventListener("click", () => switchView("command"));
+    document.getElementById("btn-solar").addEventListener("click", () => switchView("solar"));
+    document.getElementById("btn-mars").addEventListener("click", () => switchView("mars"));
+}
+
+function switchView(view) {
+    gameState.view = view;
+
+    document.querySelectorAll("nav button").forEach(btn => btn.classList.remove("active"));
+    if (view === "command") document.getElementById("btn-command").classList.add("active");
+    if (view === "solar")   document.getElementById("btn-solar").classList.add("active");
+    if (view === "mars")    document.getElementById("btn-mars").classList.add("active");
+
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    if (view === "command") document.getElementById("command-view").classList.add("active");
+    if (view === "solar")   document.getElementById("solar-view").classList.add("active");
+    if (view === "mars")    document.getElementById("mars-view").classList.add("active");
+}
+
+/* =========================
+   SOLSYSTEM (uendret logikk)
+   ========================= */
+
+function initSolarView() {
+    const map = document.getElementById("solar-map");
+
+    gameState.planets.forEach((planet, index) => {
+        const orbitEl = document.createElement("div");
+        orbitEl.className = "orbit";
+
+        const planetEl = document.createElement("div");
+        planetEl.className = "planet";
+        planetEl.style.background =
+            planet.id === "mars"  ? "#f97316" :
+            planet.id === "earth" ? "#22c55e" : "#60a5fa";
+
+        const labelEl = document.createElement("div");
+        labelEl.className = "planet-label";
+        labelEl.textContent = planet.name;
+
+        map.appendChild(orbitEl);
+        map.appendChild(planetEl);
+        map.appendChild(labelEl);
+
+        planet.orbitEl = orbitEl;
+        planet.el = planetEl;
+        planet.labelEl = labelEl;
+
+        planet.angle = (index / gameState.planets.length) * Math.PI * 2;
+        planet.angularSpeed = 0.00006 + (index * 0.00002);
+
+        planetEl.addEventListener("click", () => selectPlanet(planet.id));
+    });
+
+    requestAnimationFrame(() => {
+        layoutSolarSystem();
+        window.addEventListener("resize", layoutSolarSystem);
+    });
+
+    document.getElementById("btn-scan").addEventListener("click", () => {
+        if (!gameState.selectedPlanetId) return;
+        scanPlanet(gameState.selectedPlanetId);
+    });
+
+    document.getElementById("btn-send-probe").addEventListener("click", () => {
+        if (!gameState.selectedPlanetId) return;
+        sendProbe(gameState.selectedPlanetId);
+    });
+
+    document.getElementById("btn-go-to-mars").addEventListener("click", () => {
+        switchView("mars");
+    });
+
+    const speedInput = document.getElementById("orbit-speed");
+    const speedLabel = document.getElementById("orbit-speed-label");
+    if (speedInput && speedLabel) {
+        speedInput.value = gameState.orbitSpeedMultiplier * 100;
+        speedLabel.textContent = gameState.orbitSpeedMultiplier.toFixed(2) + "x";
+        speedInput.addEventListener("input", (e) => {
+            const v = Number(e.target.value) / 100;
+            gameState.orbitSpeedMultiplier = v;
+            speedLabel.textContent = v.toFixed(2) + "x";
+        });
+    }
+}
+
+function layoutSolarSystem() {
+    const map = document.getElementById("solar-map");
+    const rect = map.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    if (!width || !height) return;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const maxRadius = Math.min(width, height) / 2 - 40;
+
+    gameState.solarLayout.width = width;
+    gameState.solarLayout.height = height;
+    gameState.solarLayout.centerX = centerX;
+    gameState.solarLayout.centerY = centerY;
+    gameState.solarLayout.initialized = true;
+
+    const sun = document.getElementById("sun");
+    sun.style.left = (centerX - 20) + "px";
+    sun.style.top  = (centerY - 20) + "px";
+
+    if (!gameState.solarLayout.centerDebugEl) {
+        const centerDebug = document.createElement("div");
+        centerDebug.className = "solar-debug-center";
+        map.appendChild(centerDebug);
+        gameState.solarLayout.centerDebugEl = centerDebug;
+    }
+    gameState.solarLayout.centerDebugEl.style.left = centerX + "px";
+    gameState.solarLayout.centerDebugEl.style.top  = centerY + "px";
+
+    const maxAU = Math.max(...gameState.planets.map(p => p.distanceAU));
+    gameState.planets.forEach(planet => {
+        const radius = (planet.distanceAU / maxAU) * maxRadius;
+        planet.orbitRadius = radius;
+
+        const d = radius * 2;
+        planet.orbitEl.style.width = d + "px";
+        planet.orbitEl.style.height = d + "px";
+        planet.orbitEl.style.left = (centerX - radius) + "px";
+        planet.orbitEl.style.top  = (centerY - radius) + "px";
+
+        if (!planet.debugLabelEl) {
+            const dbg = document.createElement("div");
+            dbg.className = "solar-debug-label";
+            map.appendChild(dbg);
+            planet.debugLabelEl = dbg;
+        }
+        const dbgX = centerX;
+        const dbgY = centerY - radius;
+        planet.debugLabelEl.style.left = (dbgX + 5) + "px";
+        planet.debugLabelEl.style.top  = (dbgY - 8) + "px";
+        planet.debugLabelEl.textContent = `${planet.name}: r=${radius.toFixed(0)}px`;
+    });
+
+    updatePlanetPositions(0);
+}
+
+function updatePlanetPositions(deltaTime) {
+    if (!gameState.solarLayout.initialized) return;
+    const { centerX, centerY } = gameState.solarLayout;
+
+    gameState.planets.forEach(planet => {
+        if (deltaTime && gameState.orbitSpeedMultiplier > 0) {
+            planet.angle += planet.angularSpeed * deltaTime * gameState.orbitSpeedMultiplier;
+        }
+
+        const r = planet.orbitRadius || 0;
+        const x = centerX + Math.cos(planet.angle) * r;
+        const y = centerY + Math.sin(planet.angle) * r;
+
+        const size = 12;
+        planet.el.style.left = (x - size / 2) + "px";
+        planet.el.style.top  = (y - size / 2) + "px";
+
+        planet.labelEl.style.left = (x + 10) + "px";
+        planet.labelEl.style.top  = (y + 10) + "px";
+    });
+}
+
+let lastFrameTime = null;
+function solarAnimationLoop(timestamp) {
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    const delta = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
+
+    updatePlanetPositions(delta);
+    requestAnimationFrame(solarAnimationLoop);
+}
+
+function selectPlanet(planetId) {
+    gameState.selectedPlanetId = planetId;
+    const planet = gameState.planets.find(p => p.id === planetId);
+    if (!planet) return;
+
+    const details = document.getElementById("planet-details");
+    const statusText = planet.scanned ? "Status: Skannet" : "Status: Ikke skannet";
+    details.innerHTML = `
+        <b>${planet.name}</b><br/>
+        Avstand fra Solen: ${planet.distanceAU.toFixed(1)} AU<br/>
+        ${statusText}<br/><br/>
+        ${planet.desc}
+    `;
+    document.getElementById("btn-scan").disabled = planet.scanned;
+    document.getElementById("btn-send-probe").disabled = false;
+    document.getElementById("btn-go-to-mars").disabled = planet.id !== "mars";
+}
+
+function scanPlanet(planetId) {
+    const planet = gameState.planets.find(p => p.id === planetId);
+    if (!planet || planet.scanned) return;
+    planet.scanned = true;
+    log(`Planet skannet: ${planet.name}.`);
+    selectPlanet(planetId);
+}
+
+function sendProbe(planetId) {
+    const planet = gameState.planets.find(p => p.id === planetId);
+    if (!planet) return;
+    log(`Romsonde sendt til ${planet.name}.`);
+}
+
+/* =========================
+   MARS OVERFLATE + POI
+   ========================= */
+
+function initMarsSurface() {
+    const surf = gameState.marsSurface;
+    const grid = document.getElementById("surface-grid");
+    grid.style.gridTemplateColumns = `repeat(${surf.width}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${surf.height}, 1fr)`;
+    grid.innerHTML = "";
+    surf.tiles = [];
+
+    for (let y = 0; y < surf.height; y++) {
+        for (let x = 0; x < surf.width; x++) {
+            const suitability = Math.floor(Math.random() * 101);
+            const tile = {
+                x, y,
+                suitability,
+                hasBase: false,
+                discovered: false,
+                poi: null
+            };
+            surf.tiles.push(tile);
+
+            const tileEl = document.createElement("div");
+            tileEl.className = "surface-tile";
+            tileEl.dataset.x = x;
+            tileEl.dataset.y = y;
+            tileEl.addEventListener("click", () => {
+                updateSurfaceInfoForTile(x, y);
+            });
+            grid.appendChild(tileEl);
+        }
+    }
+
+    placeMarsPOIs();
+    revealAround(surf.aircraft.x, surf.aircraft.y);
+    renderSurfaceGrid();
+}
+
+function placeMarsPOIs() {
+    const surf = gameState.marsSurface;
+    const tiles = surf.tiles.slice();
+    const startX = surf.aircraft.x;
+    const startY = surf.aircraft.y;
+    const candidates = tiles.filter(t => !(t.x === startX && t.y === startY));
+
+    const numPOI = 6;
+    for (let i = 0; i < numPOI && candidates.length > 0; i++) {
+        const idx = Math.floor(Math.random() * candidates.length);
+        const tile = candidates.splice(idx, 1)[0];
+        const poiDef = POI_DEFS[Math.floor(Math.random() * POI_DEFS.length)];
+        tile.poi = {
+            id: poiDef.id,
+            name: poiDef.name,
+            desc: poiDef.desc,
+            bonus: poiDef.bonus,
+            visited: false
+        };
+    }
+}
+
+function revealAround(cx, cy) {
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const t = getSurfaceTile(cx + dx, cy + dy);
+            if (t) t.discovered = true;
+        }
+    }
+}
+
+function renderSurfaceGrid() {
+    const surf = gameState.marsSurface;
+    const grid = document.getElementById("surface-grid");
+
+    for (let i = 0; i < surf.tiles.length; i++) {
+        const tile = surf.tiles[i];
+        const tileEl = grid.children[i];
+        tileEl.className = "surface-tile";
+        tileEl.innerHTML = "";
+
+        const isAircraft = (surf.aircraft.x === tile.x && surf.aircraft.y === tile.y);
+
+        if (!tile.discovered && !isAircraft) {
+            tileEl.style.backgroundColor = "#020617";
+        } else {
+            const h = (tile.suitability / 100) * 120;
+            tileEl.style.backgroundColor = `hsl(${h}, 70%, 45%)`;
+
+            const label = document.createElement("div");
+            label.className = "label";
+            label.textContent = tile.suitability;
+            tileEl.appendChild(label);
+
+            if (tile.poi && !tile.poi.visited) {
+                const poiEl = document.createElement("div");
+                poiEl.className = "poi-marker";
+                poiEl.title = tile.poi.name;
+                tileEl.appendChild(poiEl);
+            }
+        }
+
+        if (isAircraft) {
+            tileEl.classList.add("aircraft");
+            const ship = document.createElement("div");
+            ship.className = "aircraft-model";
+            tileEl.appendChild(ship);
+        }
+
+        if (tile.hasBase) {
+            tileEl.classList.add("base");
+            const label = document.createElement("div");
+            label.className = "label";
+            label.textContent = "B";
+            tileEl.appendChild(label);
+        }
+    }
+
+    updateSurfaceInfo();
+}
+
+function getSurfaceTile(x, y) {
+    const surf = gameState.marsSurface;
+    if (x < 0 || x >= surf.width || y < 0 || y >= surf.height) return null;
+    return surf.tiles[y * surf.width + x];
+}
+
+function updateSurfaceInfo() {
+    updateSurfaceInfoForTile(gameState.marsSurface.aircraft.x, gameState.marsSurface.aircraft.y, true);
+}
+
+function updateSurfaceInfoForTile(x, y, isAircraftPosition = false) {
+    const tile = getSurfaceTile(x, y);
+    if (!tile) return;
+
+    const info = document.getElementById("tile-info");
+    const aircraftPos = gameState.marsSurface.aircraft;
+    const isAircraftTile = (aircraftPos.x === x && aircraftPos.y === y);
+
+    let qualityText;
+    if (tile.discovered || isAircraftTile) {
+        qualityText = `<b>${tile.suitability}%</b> ${tile.suitability >= MIN_BASE_SUITABILITY ? "(god)" : "(dårlig/middels)"}`;
+    } else {
+        qualityText = "<i>Ukjent (utenfor sensorradius)</i>";
+    }
+
+    let poiText = "";
+    if (tile.poi && (tile.discovered || isAircraftTile)) {
+        poiText = `<br/>POI: ${tile.poi.name}${tile.poi.visited ? " (undersøkt)" : ""}`;
+    }
+
+    info.innerHTML = `
+        Flyposisjon: (x: ${aircraftPos.x}, y: ${aircraftPos.y})<br/>
+        Valgt rute: (x: ${x}, y: ${y})<br/>
+        Basekvalitet: ${qualityText}${poiText}
+    `;
+
+    const aircraftTile = getSurfaceTile(aircraftPos.x, aircraftPos.y);
+    const btnBase = document.getElementById("btn-found-base");
+
+    if (!gameState.marsSurface.base) {
+        if (aircraftTile && aircraftTile.suitability >= MIN_BASE_SUITABILITY) {
+            btnBase.disabled = false;
+        } else {
+            btnBase.disabled = true;
+        }
+    } else {
+        btnBase.disabled = true;
+    }
+}
+
+/* =========================
+   POI-EFFEKT
+   ========================= */
+
+function checkPoiAt(x, y) {
+    const tile = getSurfaceTile(x, y);
+    if (!tile || !tile.poi || tile.poi.visited) return;
+
+    tile.poi.visited = true;
+    const poi = tile.poi;
+    log(`POI funnet på (${x}, ${y}): ${poi.name}. ${poi.desc}`);
+
+    const res = gameState.resources;
+    if (poi.bonus) {
+        res.metal      += poi.bonus.metal      || 0;
+        res.energy     += poi.bonus.energy     || 0; // små ekstra
+        res.population += poi.bonus.population || 0;
+        updateResourcesUI();
+    }
+
+    renderSurfaceGrid();
+}
+
+/* =========================
+   BASE + START-BYGG
+   ========================= */
+
+function foundBaseHere() {
+    const surf = gameState.marsSurface;
+    if (surf.base) return;
+    const tile = getSurfaceTile(surf.aircraft.x, surf.aircraft.y);
+    if (!tile) return;
+
+    if (tile.suitability < MIN_BASE_SUITABILITY) {
+        log("Basekvaliteten her er for lav til å grunnlegge en base.");
+        return;
+    }
+
+    surf.base = { x: tile.x, y: tile.y, suitability: tile.suitability };
+    tile.hasBase = true;
+
+    log(`Base grunnlagt på (${tile.x}, ${tile.y}) med basekvalitet ${tile.suitability}%.`);
+    renderSurfaceGrid();
+
+    setupInitialBaseBuildings();
+    document.getElementById("btn-base-view").disabled = false;
+    document.getElementById("colony-info").textContent = "Base etablert med grunnleggende infrastruktur.";
+}
+
+function setupInitialBaseBuildings() {
+    const base = gameState.base;
+    const centerY = Math.floor(base.height / 2);
+    const centerX = Math.floor(base.width / 2);
+
+    const starting = [
+        { x: centerX - 1, type: "power"   },
+        { x: centerX,     type: "mine"    },
+        { x: centerX + 1, type: "habitat" }
+    ];
+
+    starting.forEach(s => {
+        const tile = base.tiles.find(t => t.x === s.x && t.y === centerY);
+        if (tile && !tile.buildingId) {
+            tile.buildingId = s.type;
+            base.buildings.push({ x: s.x, y: centerY, type: s.type });
+        }
+    });
+
+    renderBaseGrid();
+    log("Startbase utstyrt med solkraftverk, gruve og boligdomer.");
+}
+
+/* =========================
+   BASE-UI
+   ========================= */
+
+function initBaseGrid() {
+    const base = gameState.base;
+    const grid = document.getElementById("base-grid");
+    grid.style.gridTemplateColumns = `repeat(${base.width}, 1fr)`;
+    grid.style.gridTemplateRows = `repeat(${base.height}, 1fr)`;
+    grid.innerHTML = "";
+    base.tiles = [];
+    base.buildings = [];
+
+    for (let y = 0; y < base.height; y++) {
+        for (let x = 0; x < base.width; x++) {
+            const tile = { x, y, buildingId: null };
+            base.tiles.push(tile);
+            const tileEl = document.createElement("div");
+            tileEl.className = "base-tile";
+            tileEl.dataset.x = x;
+            tileEl.dataset.y = y;
+            tileEl.addEventListener("click", () => onBaseTileClick(x, y));
+            grid.appendChild(tileEl);
+        }
+    }
+
+    renderBaseGrid();
+}
+
+function renderBaseGrid() {
+    const base = gameState.base;
+    const grid = document.getElementById("base-grid");
+
+    for (let i = 0; i < base.tiles.length; i++) {
+        const tile = base.tiles[i];
+        const tileEl = grid.children[i];
+        tileEl.innerHTML = "";
+
+        if (tile.buildingId) {
+            const bDef = BUILDINGS[tile.buildingId];
+            const bDiv = document.createElement("div");
+            bDiv.className = `building ${bDef.css}`;
+            bDiv.title = bDef.name;
+            tileEl.appendChild(bDiv);
+        }
+    }
+
+    updateColonyInfo();
+}
+
+function onBaseTileClick(x, y) {
+    const bId = gameState.selectedBuildingId;
+    if (!bId) return;
+
+    const base = gameState.base;
+    const tile = base.tiles.find(t => t.x === x && t.y === y);
+    if (!tile) return;
+
+    if (tile.buildingId) {
+        log("Det står allerede en bygning på dette feltet i basen.");
+        return;
+    }
+
+    const bDef = BUILDINGS[bId];
+    if (!canAfford(bDef.cost)) {
+        log("Ikke nok ressurser til å bygge " + bDef.name + ".");
+        return;
+    }
+
+    payCost(bDef.cost);
+    tile.buildingId = bId;
+    base.buildings.push({ x, y, type: bId });
+
+    log(`Bygget ${bDef.name} i basen på felt (${x}, ${y}).`);
+    updateResourcesUI();
+    renderBaseGrid();
+}
+
+/* =========================
+   BYGG-MENY
+   ========================= */
+
+function initBuildToolbar() {
+    const toolbar = document.getElementById("build-toolbar");
+    toolbar.innerHTML = "";
+
+    Object.values(BUILDINGS).forEach(b => {
+        const btn = document.createElement("button");
+        btn.textContent = b.name;
+        btn.dataset.id = b.id;
+        btn.title = `Kost: M${b.cost.metal || 0}`;
+        btn.addEventListener("click", () => selectBuilding(b.id));
+        toolbar.appendChild(btn);
+    });
+
+    selectBuilding(null);
+}
+
+function selectBuilding(id) {
+    gameState.selectedBuildingId = id;
+    const buttons = document.querySelectorAll("#build-toolbar button");
+    buttons.forEach(btn => {
+        if (btn.dataset.id === id) btn.classList.add("selected");
+        else btn.classList.remove("selected");
+    });
+}
+
+/* =========================
+   MARS-KNAPPER & VY
+   ========================= */
+
+function initMarsButtons() {
+    document.getElementById("btn-found-base").addEventListener("click", foundBaseHere);
+
+    const btnSurface = document.getElementById("btn-surface-view");
+    const btnBaseView = document.getElementById("btn-base-view");
+
+    btnSurface.addEventListener("click", () => switchMarsView("surface"));
+    btnBaseView.addEventListener("click", () => {
+        if (!gameState.marsSurface.base) return;
+        switchMarsView("base");
+    });
+}
+
+function switchMarsView(view) {
+    gameState.currentMarsView = view;
+
+    const surfView = document.getElementById("surface-view");
+    const baseView = document.getElementById("base-view");
+    const btnSurface = document.getElementById("btn-surface-view");
+    const btnBaseView = document.getElementById("btn-base-view");
+
+    if (view === "surface") {
+        surfView.style.display = "flex";
+        baseView.classList.remove("active");
+        btnSurface.classList.add("active");
+        btnBaseView.classList.remove("active");
+    } else {
+        surfView.style.display = "none";
+        baseView.classList.add("active");
+        btnSurface.classList.remove("active");
+        btnBaseView.classList.add("active");
+    }
+}
+
+/* =========================
+   RESSURSER & ØKONOMI
+   ========================= */
+
+function canAfford(cost) {
+    const res = gameState.resources;
+    return (!cost.metal || res.metal >= cost.metal);
+}
+
+function payCost(cost) {
+    const res = gameState.resources;
+    if (cost.metal) res.metal -= cost.metal;
+}
+
+function updateResourcesUI() {
+    document.getElementById("res-metal").textContent = gameState.resources.metal.toFixed(0);
+    document.getElementById("res-energy").textContent = gameState.resources.energy.toFixed(0);
+    document.getElementById("res-population").textContent = gameState.resources.population.toFixed(0);
+}
+
+function updateColonyInfo() {
+    const base = gameState.base;
+    const info = document.getElementById("colony-info");
+
+    if (!gameState.marsSurface.base) {
+        info.textContent = "Ingen base grunnlagt ennå på Mars.";
+        return;
+    }
+
+    if (base.buildings.length === 0) {
+        info.textContent = "Base etablert, men ingen bygninger ennå.";
+        return;
+    }
+
+    const counts = {};
+    base.buildings.forEach(b => {
+        counts[b.type] = (counts[b.type] || 0) + 1;
+    });
+
+    const lines = Object.entries(counts).map(([type, count]) => `${BUILDINGS[type].name}: ${count}`);
+    info.innerHTML = lines.join("<br/>");
+}
+
+/**
+ * Ny ressurslogikk:
+ * - Energi: kraftverk gir kapasitet, bygg bruker. Mangler energi = bygg inaktive.
+ * - Kapasitet: metall og befolkning begrenses av bygg.
+ * - Arbeidskraft: kraftverk og gruver krever folk for å være aktive.
+ */
+function gameTickResources() {
+    const base = gameState.base;
+    const res = gameState.resources;
+
+    const buildings = base.buildings.map((b, index) => ({ ...b, index }));
+
+    let numPower = 0, numMines = 0, numHabitats = 0, numStorage = 0, numFactories = 0;
+    buildings.forEach(b => {
+        if (b.type === "power")   numPower++;
+        if (b.type === "mine")    numMines++;
+        if (b.type === "habitat") numHabitats++;
+        if (b.type === "storage") numStorage++;
+        if (b.type === "factory") numFactories++;
+    });
+
+    const maxMetal = numMines * MINE_CAPACITY + numStorage * STORAGE_CAPACITY;
+    const maxPopulation = numHabitats * HABITAT_CAPACITY;
+
+    // Arbeidskraft
+    let availableWorkers = Math.floor(res.population);
+    const staffed = new Set();
+
+    // Bemann kraftverk først
+    buildings.forEach(b => {
+        if (b.type === "power") {
+            if (availableWorkers >= WORKERS_PER_POWER) {
+                staffed.add(b.index);
+                availableWorkers -= WORKERS_PER_POWER;
+            }
+        }
+    });
+
+    // Deretter bemann gruver
+    buildings.forEach(b => {
+        if (b.type === "mine") {
+            if (availableWorkers >= WORKERS_PER_MINE) {
+                staffed.add(b.index);
+                availableWorkers -= WORKERS_PER_MINE;
+            }
+        }
+    });
+
+    // Energi fra bemannede kraftverk
+    let totalPower = 0;
+    buildings.forEach(b => {
+        if (b.type === "power" && staffed.has(b.index)) {
+            totalPower += POWER_OUTPUT_PER_PLANT;
+        }
+    });
+
+    let remainingPower = totalPower;
+
+    let deltaMetal = 0;
+    let deltaPop   = 0;
+
+    // Bestem aktive bygg og produksjon
+    buildings.forEach(b => {
+        const type = b.type;
+        const energyCost = ENERGY_COST[type] || 0;
+
+        // Må være bemannet for gruver og kraftverk
+        let staffedOK = true;
+        if ((type === "power" || type === "mine") && !staffed.has(b.index)) {
+            staffedOK = false;
+        }
+        if (!staffedOK) return;
+
+        // Energi-sjekk
+        if (energyCost > 0) {
+            if (remainingPower >= energyCost) {
+                remainingPower -= energyCost;
+            } else {
+                return; // ikke nok energi -> inaktiv
+            }
+        }
+
+        // Aktivt bygg – produksjon
+        const prod = PRODUCTION[type] || { metal: 0, population: 0 };
+        deltaMetal += prod.metal      || 0;
+        deltaPop   += prod.population || 0;
+    });
+
+    // Oppdater befolkning med kapasitetstak
+    res.population += deltaPop;
+    if (res.population > maxPopulation) res.population = maxPopulation;
+    if (res.population < 0) res.population = 0;
+
+    // Oppdater metall med lagringskapasitet
+    res.metal += deltaMetal;
+    if (res.metal > maxMetal) res.metal = maxMetal;
+    if (res.metal < 0) res.metal = 0;
+
+    // Energi viser tilgjengelig restkapasitet
+    res.energy = remainingPower;
+    updateResourcesUI();
+}
+
+/* =========================
+   TASTATUR (FLY)
+   ========================= */
+
+function initKeyboardControls() {
+    document.addEventListener("keydown", (e) => {
+        if (gameState.view !== "mars") return;
+        if (gameState.currentMarsView !== "surface") return;
+
+        const surf = gameState.marsSurface;
+        let dx = 0, dy = 0;
+        if (e.key === "ArrowUp") dy = -1;
+        else if (e.key === "ArrowDown") dy = 1;
+        else if (e.key === "ArrowLeft") dx = -1;
+        else if (e.key === "ArrowRight") dx = 1;
+        else return;
+
+        e.preventDefault();
+
+        const nx = surf.aircraft.x + dx;
+        const ny = surf.aircraft.y + dy;
+        if (nx < 0 || nx >= surf.width || ny < 0 || ny >= surf.height) return;
+
+        surf.aircraft.x = nx;
+        surf.aircraft.y = ny;
+
+        revealAround(nx, ny);
+        renderSurfaceGrid();
+        checkPoiAt(nx, ny);
+    });
+}
+
+/* =========================
+   GAME LOOPS
+   ========================= */
+
+function startGameLoops() {
+    setInterval(gameTickResources, 1000);
+    requestAnimationFrame(solarAnimationLoop);
+}
+
+/* =========================
+   START
+   ========================= */
+window.addEventListener("load", init);
+</script>
+</body>
+</html>
